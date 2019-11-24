@@ -1,0 +1,83 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Description: this code tests using robotcis.PurePursuit object for
+% trajectort tracking. Robot's pose is obtained by gazebo model state.
+% Waypoints can be specified.
+%
+% author: Xihan Ma
+% Version: 1.0
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+clc;
+clear;
+close all;
+rosshutdown;
+
+ipaddress = 'localhost';
+rosinit(ipaddress);
+
+jackal = rospublisher('/jackal_velocity_controller/cmd_vel');
+velmsg = rosmessage(jackal);
+
+model_state = rossubscriber('/gazebo/model_states');
+
+laser = rossubscriber('/front/scan');
+
+waypoints = [0 0; 2 2; 4 4; 5 5; 6 6];
+
+controller = robotics.PurePursuit('DesiredLinearVelocity',0.3, ...
+            'MaxAngularVelocity',0.65,'Waypoints',waypoints, ...
+            'LookaheadDistance',0.1);
+        
+vfh = robotics.VectorFieldHistogram;
+vfh.NumAngularSectors = 180;    
+vfh.DistanceLimits = [0.1 3.5];
+vfh.RobotRadius = 0.3;
+vfh.MinTurningRadius = 0.3;
+vfh.SafetyDistance = 0.1;
+vfh.HistogramThresholds = [1 6];
+
+rate = robotics.Rate(40);
+
+dist2goal = inf;
+first_flag = 1;
+
+while rate.TotalElapsedTime < 60
+    
+    if dist2goal < 0.05
+        break;
+    end
+    
+    true_pose = receive(model_state);
+    x_pose = true_pose.Pose(16,1).Position.X;
+    y_pose = true_pose.Pose(16,1).Position.Y;
+    
+    quat = [true_pose.Pose(16,1).Orientation.W, ...
+        true_pose.Pose(16,1).Orientation.X, ...
+        true_pose.Pose(16,1).Orientation.Y, ...
+        true_pose.Pose(16,1).Orientation.Z];
+    
+    theta = quat2eul(quat);
+    theta = theta(1);
+    
+    pose = [x_pose, y_pose, theta];
+    
+    error_1stpnt = theta - ...
+        atan2((y_pose-waypoints(1,1)),(x_pose-waypoints(2,1)));
+    
+    dist2goal = sqrt((pose(1)-waypoints(end,1))^2 + ...
+                    (pose(2)-waypoints(end,2))^2);
+    
+        [v,w] = controller(pose);
+        
+    velmsg.Linear.X = v;
+    velmsg.Angular.Z = w;
+    send(jackal,velmsg);
+    
+    plot(x_pose,y_pose,'.b');
+    grid on;
+    hold on;
+    
+    waitfor(rate);
+end
+
+title('trajectory tracking');
