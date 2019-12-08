@@ -177,7 +177,7 @@ while rate.TotalElapsedTime <= tf
     e_rec = [e_rec, e];
     
     % replan trigger
-    if abs(e(1)) + abs(e(2)) > 1.8
+    if abs(e(1)) + abs(e(2)) > 1.5
         [ax,ay,tf] = replan(occval,x,y,Goal,t);
         disp('replan triggered');
     end
@@ -189,14 +189,23 @@ while rate.TotalElapsedTime <= tf
     wd = (ddy_traj*dx_traj-ddx_traj*dy_traj)/ ...
         (dx_traj*dx_traj+dy_traj*dy_traj);
     
-    % approxiemate linearization control law
+%     % approxiemate linearization control law
+%     ksai = 0.707;       % damping ratio
+%     a = 1.5;          % natual frequency
+%     k1 = 2*ksai*a;
+%     k3 = k1;
+%     k2 = (a*a - wd*wd) / vd;
+%     u1 = -k1*e(1);
+%     u2 = -k2*e(2) - k3*e(3);
+    
+    % non-linear control law
     ksai = 0.707;       % damping ratio
-    a = 1.5;          % natual frequency
+    a = 0.8;            % natual frequency
     k1 = 2*ksai*a;
     k3 = k1;
-    k2 = (a*a - wd*wd) / vd;
+    k2 = 1.0;
     u1 = -k1*e(1);
-    u2 = -k2*e(2) - k3*e(3);
+    u2 = -k2*vd*sin(e(3))/e(3)*e(2) - k3*e(3);
     
     % pick controller
     ranges = double(laserScan.Ranges);
@@ -217,7 +226,7 @@ while rate.TotalElapsedTime <= tf
         w = wd - u2;
     end
     
-    if range_goal <= 0.2 && abs(e(3)) < 0.2
+    if range_goal <= 0.1 && abs(e(3)) < 0.1
         disp('reached!')
         break
     end
