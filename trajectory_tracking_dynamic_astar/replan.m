@@ -11,6 +11,7 @@ OptimalPath = astar2([x,y],Goal(1:2));
 [globalx, globaly] = astar2global2(OptimalPath);
 
 delete(pathplan)
+delete(obstacles)
 obstacles = plot(ax1,row,col,'.k');
 pathplan = plot(ax1,OptimalPath(:,1),OptimalPath(:,2));
 start_pnt = plot(ax1,OptimalPath(1,1),OptimalPath(1,2),'xm');

@@ -139,7 +139,7 @@ rate = robotics.Rate(60);
 v_rec = [];
 w_rec = [];
 e_rec = [];
-while rate.TotalElapsedTime <= 1.2*tf
+while rate.TotalElapsedTime <= tf
     
     % current reference trajectory
     t = rate.TotalElapsedTime;
@@ -177,7 +177,7 @@ while rate.TotalElapsedTime <= 1.2*tf
     e_rec = [e_rec, e];
     
     % replan trigger
-    if abs(e(1)) + abs(e(2)) > 1.3
+    if abs(e(1)) + abs(e(2)) > 1.8
         [ax,ay,tf] = replan(occval,x,y,Goal,t);
         disp('replan triggered');
     end
@@ -190,8 +190,8 @@ while rate.TotalElapsedTime <= 1.2*tf
         (dx_traj*dx_traj+dy_traj*dy_traj);
     
     % approxiemate linearization control law
-    ksai = 0.5;       % damping ratio
-    a = 1.0;          % natual frequency
+    ksai = 0.707;       % damping ratio
+    a = 1.5;          % natual frequency
     k1 = 2*ksai*a;
     k3 = k1;
     k2 = (a*a - wd*wd) / vd;
